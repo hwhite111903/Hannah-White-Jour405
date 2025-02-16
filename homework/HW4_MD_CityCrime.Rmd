@@ -67,3 +67,17 @@ These sharp spikes suggest something more than just normal crime trends. Due to 
 ### Task 9: Save Your Work and Put it on GitHub
 
 Save this notebook, then commit it to your local repository. Push the changes to your GitHub repository and submit the URL for this file in ELMS.
+
+### Task 10: Percentiles
+
+```{r}
+md_cities_percentiles <- md_cities_change |> mutate(violent_rate_percentile = ntile(violent_rate_2020, 100))
+```
+
+11 cities are above the 90th percentile
+
+```{r}
+iqr_violent_2020 <- md_cities_percentiles |> summarize(IQR_violent_rate_2020 = IQR(violent_rate_2020, na.rm = TRUE))
+```
+
+With an IQR of 41.98895, this suggests that, since it is on the lower side, most of the cities have similar violent crime rates. This could lead you to think of a story on how that could be when if you're just looking at the data previously, you saw what seemed to be a huge gap. 
