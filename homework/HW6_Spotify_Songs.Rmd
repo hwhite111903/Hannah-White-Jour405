@@ -1,4 +1,4 @@
----
+z---
 title: "HW6_Spotify_Songs"
 ---
 
@@ -7,18 +7,24 @@ In this assignment, you will be working with a dataset of songs played on Spotif
 ### Task 1: Load the tidyverse
 
 ```{r}
+library(tidyverse)
 ```
 
 ### Task 2: Load the Spotify Songs dataset from https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/spotify_2020.csv
 
 ```{r}
+spotify_songs <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/spotify_2020.csv")
 ```
 
 ### Task 3: Calculate the mean and standard deviation of the danceability scores
 
-Write code to calculate the mean standard deviation of the danceability scores in the Spotify dataset. Display those.
+Write code to calculate the mean and standard deviation of the danceability scores in the Spotify dataset. Display those.
 
 ```{r}
+spotify_songs |> summarise(
+    mean_danceability = mean(danceability, na.rm = TRUE),
+    sd_danceability = sd(danceability, na.rm = TRUE)
+  )
 ```
 
 ### Task 4: Create a histogram of the danceability scores
@@ -26,20 +32,52 @@ Write code to calculate the mean standard deviation of the danceability scores i
 Write code to create a histogram of the danceability scores in the Spotify dataset, based on the example we did in class.
 
 ```{r}
+
+library(ggplot2)
+
+ggplot(spotify_songs, aes(x = danceability)) + 
+  geom_histogram(binwidth = 0.1, fill = "blue", color = "black") +
+  
+
 ```
 
 ### Task 5: Add a line to the histogram for the mean danceability score
 
-Write code to add a vertical line to the histogram for the mean danceability score, based on the example in class.
+Take the same code and add a vertical line to the histogram for the mean danceability score, based on the example in class.
 
 ```{r}
+mean_danceability <- mean(spotify_songs$danceability, na.rm = TRUE)
+
+ggplot(spotify_songs, aes(x = danceability)) + 
+  geom_histogram(binwidth = 0.1, fill = "blue", color = "black") +
+  geom_vline(xintercept = mean_danceability, color = "red", linetype = "dashed", size = 1) +
+  
 ```
 
-### Task 6: Describe our results
 
-Write a few sentences about the distribution of danceability scores in the Spotify dataset. Is it a normal distribution, or is it skewed in one direction? What does the mean and distribution tell us about the songs in the dataset?
+### Task 6: Add two lines to the histogram to show one standard deviation
 
-### Task 7: Save Your Work and Put it on GitHub
+Take the previous code and add two lines to the histogram for the 1st standard deviation below and above the mean score.
+
+```{r}
+sd_danceability <- sd(spotify_songs$danceability, na.rm = TRUE)
+
+ggplot(spotify_songs, aes(x = danceability)) + 
+  geom_histogram(binwidth = 0.1, fill = "blue", color = "black") +
+  geom_vline(xintercept = mean_danceability, color = "red", linetype = "dashed", size = 1) +  
+  geom_vline(xintercept = mean_danceability + sd_danceability, color = "green", linetype = "dashed", size = 1) + 
+  geom_vline(xintercept = mean_danceability - sd_danceability, color = "green", linetype = "dashed", size = 1) + 
+  
+```
+
+### Task 7: Describe our results and pitch a story
+
+Write a few sentences about the distribution of danceability scores in the Spotify dataset. Is it a normal distribution, or is it skewed in one direction? What does the mean and one standard distribution tell us about the songs in the dataset? Draft a short story pitch from this data.
+
+When looking at this histogram I see it does look like a normal distribution. However, it does skew a tad to the right.
+
+story pitch: The average song has a pretty high danceability score, meaning most tracks are easy to dance to. The analysis shows that while many songs fit a similar rhythm, a small number are really built for dancing, pushing the boundaries of what’s considered danceable.
+
+### Task 8: Save Your Work and Put it on GitHub
 
 Save this notebook, then commit it to your local repository. Push the changes to your GitHub repository and submit the URL for this file in ELMS.
-
