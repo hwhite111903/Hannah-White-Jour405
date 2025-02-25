@@ -6,23 +6,50 @@ Follow along with the demo to learn how to sample data from a population using R
 
 ### Task 1: Load the tidyverse
 
+```{r}
+library(tidyverse)
+```
+
 
 ### Task 2: Load 1,000 rows of data with the ages of people from 18-80
+
+```{r}
+set.seed(42) # Setting seed for reproducibility
+population <- tibble(age = sample(18:80, 1000, replace = TRUE))
+#view the first few rows
+head(population)
+```
 
 
 ### Task 3: Sample 100 rows of data from the dataset
 
+```{r}
+sample_100 <- population |> sample_n(100)
+sample_50 <- population |> sample_n(50)
+sample_10 <- population |> sample_n(10)
+```
+
 
 ### Task 4: Calculate the mean age and standard deviation of the sample
 
+```{r}
+sample_100 |> summarise(mean = mean(age), sd = sd(age))
+sample_50 |> summarise(mean = mean(age), sd = sd(age))
+sample_10 |> summarise(mean = mean(age), sd = sd(age))
+```
+
 
 ### Task 5: Calculate the mean age and standard deviation of the population
+
+```{r}
+population |> summarise(mean = mean(age), sd = sd(age))
+```
 
 
 ### Task 6: Compare the sample and population statistics
 
 Compare the means and standard deviations. Are they similar? Go back and re-run the sampling and statistics calculations with a smaller sample size. How do the results change?
 
-
+When looking at the sample and population (mean and standard deviation), They only have a small difference. However, the smaller the sample size, the more inaccurate the data becomes. One interesting thing I noticed tho was while the mean was decreasing and becoming inaccurate, the standard deviation dipped down and then went back up and become closer than the original sample.
 
 When finished, save your work, switch to GitHub Desktop, then add, commit and push your changes to GitHub and submit the URL of the notebook in ELMS.
