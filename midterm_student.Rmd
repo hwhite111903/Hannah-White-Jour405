@@ -1,16 +1,22 @@
 # JOUR405: Statistics for Journalists
 ## Midterm Exam - Spring 2025
 
-Name: YOUR NAME HERE
+Name: Hannah White
 
 For this exam, you'll analyze several datasets using R and the statistical concepts we've covered in class. Load the tidyverse before beginning, then complete each task. Write your code in the provided blocks and answer the questions in complete sentences. Start by loading the tidyverse and any other libraries you think you might need.
 
-```r
+```{r}
+library(tidyverse)
 ```
+
 
 ## Part 1: Restaurant Health Inspections (15 points)
 
 You want to understand how restaurants in Montgomery County are performing on health inspections. The first dataset contains restaurant health inspection scores for restaurants in Montgomery County. The dataset includes the name of the establishment, the number of points for critical and non-critical areas, the total points, maximum points possible and the compliance score and grade. Load the data from: `https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/montco_inspections.csv` and complete these tasks:
+
+```{r}
+moco_restaurants <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/montco_inspections.csv")
+```
 
 ### Tasks:
 1. Calculate the mean and standard deviation of compliance scores (5 points)
@@ -18,13 +24,26 @@ You want to understand how restaurants in Montgomery County are performing on he
 3. Write 2-3 sentences interpreting what the standard deviation and histogram tell us about the distribution of compliance scores. What would be newsworthy about this distribution? What's the story here? (5 points).
 
 ```{r}
-
+moco_restaurants |> summarise(mean = mean(compliance_score), sd = sd(compliance_score))
 
 ```
+```{r}
+moco_restaurants |> 
+  ggplot() + 
+  geom_histogram(aes(x = compliance_score), binwidth = 2) +
+  geom_vline(aes(xintercept = mean(compliance_score)), color = "red", linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = mean(compliance_score) - sd(compliance_score)), color = "blue", linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = mean(compliance_score) + sd(compliance_score)), color = "blue", linetype = "dashed", size = 1)
+```
+The standard deviation and histogram tell us that the distribution of compliance scores skews right.When looking at the histogram, you can see the majority of the data being on the far right side of the graph. And with the sd,you can tell that the data points are a little spread out but stay relatively close to 96.A story could be about how high the compliance scores are and how they very rarely move from being almost perfect.
+
 
 ## Part 2: High School Athletics (25 points)
 
 You are reporting a story about high school sports participation in Maryland and want to see if there are differences between boys and girls. The second dataset shows participation numbers in high school sports across Maryland counties in 2024, broken down by sport and sex. Load the data from: `https://raw.githubusercontent.com/example/md_hs_sports_2024.csv` and complete these tasks:
+```{r}
+sport_participation <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/md_hs_participation.csv")
+```
 
 ### Tasks:
 1. Calculate the correlation between boys' and girls' participation (5 points)
@@ -33,13 +52,31 @@ You are reporting a story about high school sports participation in Maryland and
 4. In 2-3 sentences, explain what the correlation coefficient and scatterplot reveal about equity in Maryland high school sports participation. How do you interpret the school districts that are below the line vs those that are above? Which school districts are most worth examining further, and why? (10 points)
 
 ```{r}
-
+sport_participation|> summarise(correlation = cor(boys,girls, method = "pearson"))
 ```
+```{r}
+sport_participation <- sport_participation |> mutate(total = boys + girls)
+```
+
+```{r}
+sport_participation <- sport_participation |> mutate(girls_pct = girls / total)
+```
+
+```{r}
+sport_participation |> 
+  ggplot() +
+  geom_point(aes(x = boys, y = girls)) +
+  geom_smooth(aes(x = boys, y = girls), method = "lm")
+```
+The correlation coefficient and scatterplot reveal a positive relationship between boya and girls in sport participation. With the calculation, the number given was above zero and close to 1, so there is a positive relationship but there are still some outliers. For the scatterplot, you can see a steady incline between the two. School districts that are below the line would have less girls than boys and then ones above would have more. With the line repersenting a 50/50 relationship. One school in particular I would want to look at further would be the one on the far right, since it is such an outlier compared to the others.
 
 
 ## Part 3: Public Transit Ridership (20 points)
 
 You are investigating public transit ridership in the Washington, D.C. area and want to understand the patterns of daily bus and rail ridership. The third dataset contains daily bus and rail ridership totals from WMATA for the past year. Load the data from https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/wmata_daily.csv and do the following:
+```{r}
+pt_ridership <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/wmata_daily.csv")
+```
 
 ### Tasks:
 1. Calculate the average bus and rail ridership and standard deviation using summarize() (5 points)
@@ -48,14 +85,32 @@ You are investigating public transit ridership in the Washington, D.C. area and 
 
 
 ```{r}
-
+pt_ridership |> summarise(mean = mean(total), sd = sd(total))
 ```
+```{r}
+sample_50 <- pt_ridership |> sample_n(50)
+```
+```{r}
+sample_50 |> summarise(mean = mean(total), sd = sd(total))
+```
+I thought 50 would be a good sample size since the original size was 425, meaning it was 8.5 times larger. I thought of doing a size that was close to 10 would be a good representation. Compared to the original size, the mean and sd of the sample size wasn't completely far off. However, the mean is smaller than the original and the sd is bigger.
 
+```{r}
+weekday_ridership <- pt_ridership |> 
+  group_by(weekday) |> 
+  summarise(weekday_ridership = sum(total)) |> 
+  arrange(desc(weekday_ridership))
+```
+The biggest pattern I see is that the weekdays see the most ridership, most likely due to work commutes. With Sunday seeing the least traffic. There aren't many differences between bus and rail in the standard deviation values.
 
 
 ## Part 4: Maryland Car Theft Rates (20 points)
 
 Your editor has assigned you a story about car thefts in Maryland and wants you to analyze the data to find out which counties have the highest rates. The fourth dataset contains car theft statistics for Maryland counties in 2023 and population. Load the data from: `https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/md_car_thefts.csv` and complete the following tasks:
+```{r}
+county_thefts <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/md_car_thefts.csv")
+```
+
 
 ### Tasks:
 1. Using mutate, add a column that calculates the rate of car thefts for each county - you need to choose the per capita rate (5 points)
@@ -64,7 +119,10 @@ Your editor has assigned you a story about car thefts in Maryland and wants you 
 
 
 ```{r}
-
+county_thefts <- county_thefts |> mutate(county_rates = ((`2022` + `2023`) / population) * 10000)
+```
+```{r}
+ county_thefts <- county_thefts |>  mutate(median_rate = ((`2022` + `2023`)/county_rates)
 ```
 
 ## Part 5: Data Analysis Scenario (20 points)
@@ -76,6 +134,12 @@ Write 3-4 sentences (no code!) explaining:
 2. What visualizations would help readers understand the trends? (5 points)
 3. What additional context or data would you need to make this a complete story? (5 points)
 
+
+To check if emergency response times have gotten worse, I would compare the mean and median response times for police, fire, and ambulance calls from this year to last year. I would also look at the sd to see if response times have become more unpredictable and check for trends over time using a simple analysis.
+
+A line graph showing response times by month would help readers see if delays have increased. 
+
+To fully understand the issue, I would need more information about why response times have changed. Data on 911 call volume, staffing levels, budget changes, or major events like storms could help explain delays.
 
 ### Submission Instructions
 - Save your work frequently
