@@ -1,1 +1,57 @@
+Original data:
+
+https://www.riaa.com/wp-content/uploads/2023/03/2022-Year-End-Music-Industry-Revenue-Report.pdf
+https://www.riaa.com/wp-content/uploads/2024/03/2023-Year-End-Revenue-Statistics.pdf
+https://www.riaa.com/wp-content/uploads/2025/03/RIAA-2024Year-End-Revenue-Report.pdf
+
+My own iteration of the data all together:
+
+```{r}
+RIAA_revenue <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSdHiPGcxYmcvFAPLVQZ7BvEEsjBrkA3hXCwgqjcz9w5Obu0zd-a_sV7GxfsP4sU_ucjIX6nEfOIdYx/pub?output=csv")
+```
+What the dataset contains:
+Revenue by category from 2021 to 2024 (in millions of dollars).
+
+
+Categories include:
+
+Streaming (e.g., Paid Subscription, Ad-Supported)
+
+Physical formats (e.g., CD, LP/EP (vinyl), Music Video, Other Physical)
+
+Totals for streaming and physical
+
+% Change columns show year-over-year growth or decline for each category.
+
+
+Time period covered:
+Four years: 2021, 2022, 2023, and 2024
+
+
+Key columns for analysis:
+LP/EP: vinyl record sales.
+
+CD, Music Video, Other Physical: Useful for total physical media analysis.
+
+Total Physical Value: compare overall physical trends.
+
+Total Streaming Revenues: Use this to contrast physical vs. digital trends.
+
+
+What’s missing or needed:
+Consumer behavior data (demographics, preferences) isn’t included—it’s revenue-only.
+
+No breakdown within LP/EP (e.g., genre, age group).
+
+Inflation adjustment if you want to analyze “real” revenue change.
+
+
+Questions:
+Is vinyl driving the rise in physical media overall?
+
+Are CDs declining while vinyl rises?
+
+How does total physical media trend compare to streaming growth?
+
+Does the growth of vinyl mirror any dips or flattening in streaming?
 
