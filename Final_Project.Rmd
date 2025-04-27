@@ -1,3 +1,27 @@
+
+Tests: I wasn't too sure, but I do have some ideas that could possibly work for my data.
+
+ANOVA
+I can use ANOVA to compare the percentage growth rates of different categories (Vinyl, Streaming).
+This tells me if the average growth is statistically different across formats.
+(Are physical formats growing faster than streaming?)
+
+Correlation 
+I can calculate the correlation between Vinyl (and/or total physical) growth rates and streaming growth rates.
+If I find a negative correlation, it would support the idea that as physical grows, streaming slows a little, or at least that they don't grow together.
+(Are physical and streaming moving together or separately?)
+
+Z-Scores
+By standardizing the growth rates (using Z-scores), I can identify years where physical formats had especially strong growth compared to streaming.
+It helps highlight unusual/important years that push my hypothesis.
+
+Summary - 
+ANOVA:	Compare % growth between physical formats and streaming
+Correlation:	See if physical growth and streaming growth are linked or not
+Z-Scores:	Spot years where physical growth was unusually high
+
+
+
 Original data:
 
 https://www.riaa.com/wp-content/uploads/2023/03/2022-Year-End-Music-Industry-Revenue-Report.pdf
