@@ -1,4 +1,111 @@
 
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+```
+
+
+```{r}
+data <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_02vV4-U327jbHQCTXZGpnDUyW46hKPwMJwVVZXcLeefOo2JR6iR5SPs-GuiK9ZfekcUfvwbTp8eJ/pub?output=csv")
+```
+
+```{r}
+data_long <- data %>%
+  pivot_longer(cols = -Year, names_to = "Format", values_to = "Revenue") %>%
+  mutate(
+    Revenue = str_replace_all(Revenue, "[$,]", ""),  # remove dollar signs and commas
+    Revenue = as.numeric(Revenue)  # convert to numeric
+  )
+
+```
+
+
+```{r}
+data_growth <- data_long %>%
+  group_by(Format) %>%
+  arrange(Year) %>%
+  mutate(Percent_Growth = (Revenue - lag(Revenue)) / lag(Revenue) * 100) %>%
+  drop_na()
+```
+
+```{r}
+cor_test <- cor.test(data_growth$Year, data_growth$Percent_Growth)
+print(cor_test)
+
+```
+
+```{r}
+table(data_growth$Format)
+table(data_growth$Type)
+
+```
+```{r}
+data_growth <- data_growth %>%
+  mutate(Type = case_when(
+    str_detect(Format, regex("vinyl|cd|physical", ignore_case = TRUE)) ~ "Physical",
+    TRUE ~ "Digital"
+  ))
+
+```
+```{r}
+table(data_growth$Type)
+
+```
+```{r}
+data_growth <- data_growth %>%
+  mutate(
+    Format = factor(Format),
+    Type = factor(Type)
+  )
+
+```
+```{r}
+model <- lm(Percent_Growth ~ Year * Type, data = data_growth)
+summary(model)
+
+```
+
+```{r}
+data_growth <- data_growth %>%
+  mutate(Type = case_when(
+    str_detect(Format, "Vinyl|CD|Physical") ~ "Physical",
+    TRUE ~ "Digital"
+  ))
+
+```
+
+```{r}
+model <- lm(Percent_Growth ~ Year * Type, data = data_growth)
+summary(model)
+
+```
+```{r}
+table(data_growth$Type)
+
+```
+```{r}
+unique(data_growth$Format)
+
+```
+
+
+
+
+```{r}
+ggplot(data_growth, aes(x = Year, y = Percent_Growth, color = Format)) +
+  geom_line() +
+  labs(title = "Percentage Growth of Music Revenue Formats Over Time")
+```
+
+
+AI Link: https://chatgpt.com/share/6816d502-fcb8-800a-bb94-a32956efe3b9
+
+I've gotten quite a bit of error codes, and even when I asked ChatGPT about it. I still could not get it solved in order to get correlation, ANOVA, and regression of my data. Even after fixing up my dataset.However, I was able to get information for correlation. Unfortunately, all it told me was there is no significant linear relationship between Year and Percent Growth. The correlation is very weak (−0.0416) and the p-value confirms it’s not statistically significant.
+
+I tried for over an hour to get the other two codes to workout, but even with the help of AI I still couldn't get results.
+
 Tests: I wasn't too sure, but I do have some ideas that could possibly work for my data.
 
 ANOVA
