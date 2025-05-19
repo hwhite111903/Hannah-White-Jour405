@@ -5,184 +5,231 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 ```
-
+I loaded the necessary packages so I can work with data (read it in, clean it, analyze it, and visualize it)
+These are standard R packages that help me handle the data in the way I want.
 
 ```{r}
 data <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_02vV4-U327jbHQCTXZGpnDUyW46hKPwMJwVVZXcLeefOo2JR6iR5SPs-GuiK9ZfekcUfvwbTp8eJ/pub?output=csv")
 ```
+I read in the dataset from a public Google Sheet link I created so I can start working with it.
+The data loaded into R and is ready to use.
 
 ```{r}
-data_long <- data %>%
-  pivot_longer(cols = -Year, names_to = "Format", values_to = "Revenue") %>%
+data <- data %>%
   mutate(
-    Revenue = str_replace_all(Revenue, "[$,]", ""),  # remove dollar signs and commas
-    Revenue = as.numeric(Revenue)  # convert to numeric
+    Revenue_num = str_remove_all(Revenue, "[$,]") %>% as.numeric()
   )
 
 ```
+I removeed dollar signs and commas from the revenue column so I can treat the numbers as numeric values for math and analysis. This lets me calculate averages, run tests, and create graphs using revenue data.
 
 
 ```{r}
-data_growth <- data_long %>%
-  group_by(Format) %>%
-  arrange(Year) %>%
-  mutate(Percent_Growth = (Revenue - lag(Revenue)) / lag(Revenue) * 100) %>%
-  drop_na()
+data_clean <- data %>%
+  mutate(
+    Year = as_factor(Year),
+    Category_Type = case_when(
+      str_detect(Category, "Total") ~ "Total",
+      str_detect(Category, "Streaming|Subscription|SoundExchange") ~ "Streaming",
+      str_detect(Category, "CD|LP|EP|Physical|Video") ~ "Physical",
+      TRUE ~ "Other"
+    ),
+    Category = fct_reorder(Category, Revenue_num, .fun = mean)
+  )
+
 ```
+I cleaned up the dataset by making year a factor and grouping categories into broader types like "Streaming" or "Physical." This helps me simplify the data so it's easier to analyze trends across similar groups.
+
 
 ```{r}
-cor_test <- cor.test(data_growth$Year, data_growth$Percent_Growth)
+data_analysis <- data_clean %>%
+  filter(!str_detect(Category, "Total"))
+
+```
+I removed the “Total” rows because I don’t want to count summary values in my analysis. This keeps my results from being skewed by totals that combine other categories.
+
+
+
+```{r}
+anova1 <- aov(Revenue_num ~ Category, data = data_analysis)
+summary(anova1)
+
+```
+I ran a one-way ANOVA test to see if revenue is different across categories. If the p-value is low, it means at least one category has different average revenue from the others.
+
+
+
+
+```{r}
+anova2 <- aov(Revenue_num ~ Category * Year, data = data_analysis)
+summary(anova2)
+
+```
+I then ran a two-way ANOVA to check if revenue differences depend on both category and year.This tells me whether trends over time change depending on the category, and if any interactions are significant.
+
+
+
+```{r}
+library(janitor)
+
+data_summary <- data_analysis %>%
+  group_by(Category) %>%
+  summarise(
+    mean_revenue = mean(Revenue_num, na.rm = TRUE),
+    sd_revenue = sd(Revenue_num, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+```
+I calculated the average and standard deviation of revenue for each category to better understand their typical values and spread. This gives context to how high or low each revenue number is for that group.
+
+
+
+```{r}
+data_analysis <- data_analysis %>%
+  left_join(data_summary, by = "Category") %>%
+  mutate(z_score = (Revenue_num - mean_revenue) / sd_revenue)
+
+```
+I added a z-score column so I can see how each revenue value compares to its category’s average. The Z-scores help me quickly spot unusually high or low revenue values
+
+
+
+```{r}
+data_corr <- data_analysis %>%
+  mutate(Year_num = as.numeric(as.character(Year)))  # convert factor back to numeric
+
+```
+I converted the Year variable back into a number so I can use it in a correlation test. I needed numeric values to measure how revenue changes over time.
+
+
+
+```{r}
+cor_test <- cor.test(data_corr$Revenue_num, data_corr$Year_num)
 print(cor_test)
 
 ```
+I checked if there’s a general trend in revenue over the years across all categories. The correlation result shows whether revenue is rising or falling with time, and if the relationship is strong or weak.
+
+
 
 ```{r}
-table(data_growth$Format)
-table(data_growth$Type)
+library(broom)
 
-```
-```{r}
-data_growth <- data_growth %>%
-  mutate(Type = case_when(
-    str_detect(Format, regex("vinyl|cd|physical", ignore_case = TRUE)) ~ "Physical",
-    TRUE ~ "Digital"
-  ))
-
-```
-```{r}
-table(data_growth$Type)
-
-```
-```{r}
-data_growth <- data_growth %>%
+category_corrs <- data_corr %>%
+  group_by(Category) %>%
+  summarise(cor_test = list(cor.test(Revenue_num, Year_num))) %>%
   mutate(
-    Format = factor(Format),
-    Type = factor(Type)
-  )
+    tidy = map(cor_test, broom::tidy)
+  ) %>%
+  unnest(tidy)
+
+print(category_corrs)
 
 ```
-```{r}
-model <- lm(Percent_Growth ~ Year * Type, data = data_growth)
-summary(model)
-
-```
-
-```{r}
-data_growth <- data_growth %>%
-  mutate(Type = case_when(
-    str_detect(Format, "Vinyl|CD|Physical") ~ "Physical",
-    TRUE ~ "Digital"
-  ))
-
-```
-
-```{r}
-model <- lm(Percent_Growth ~ Year * Type, data = data_growth)
-summary(model)
-
-```
-```{r}
-table(data_growth$Type)
-
-```
-```{r}
-unique(data_growth$Format)
-
-```
+I ran separate correlation tests for each category to see how their revenues change over time. This helps me understand which categories are growing or shrinking and how strongly.
 
 
 
 
 ```{r}
-ggplot(data_growth, aes(x = Year, y = Percent_Growth, color = Format)) +
-  geom_line() +
-  labs(title = "Percentage Growth of Music Revenue Formats Over Time")
+ggplot(data_corr, aes(x = Year_num, y = Revenue_num, color = Category_Type)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Revenue Trends by Category Type",
+    x = "Year",
+    y = "Revenue ($)",
+    color = "Category Type"
+  ) +
+  theme_minimal()
 ```
-
-
-AI Link: https://chatgpt.com/share/6816d502-fcb8-800a-bb94-a32956efe3b9
-
-I've gotten quite a bit of error codes, and even when I asked ChatGPT about it. I still could not get it solved in order to get correlation, ANOVA, and regression of my data. Even after fixing up my dataset.However, I was able to get information for correlation. Unfortunately, all it told me was there is no significant linear relationship between Year and Percent Growth. The correlation is very weak (−0.0416) and the p-value confirms it’s not statistically significant.
-
-I tried for over an hour to get the other two codes to workout, but even with the help of AI I still couldn't get results.
-
-Tests: I wasn't too sure, but I do have some ideas that could possibly work for my data.
-
-ANOVA
-I can use ANOVA to compare the percentage growth rates of different categories (Vinyl, Streaming).
-This tells me if the average growth is statistically different across formats.
-(Are physical formats growing faster than streaming?)
-
-Correlation 
-I can calculate the correlation between Vinyl (and/or total physical) growth rates and streaming growth rates.
-If I find a negative correlation, it would support the idea that as physical grows, streaming slows a little, or at least that they don't grow together.
-(Are physical and streaming moving together or separately?)
-
-Z-Scores
-By standardizing the growth rates (using Z-scores), I can identify years where physical formats had especially strong growth compared to streaming.
-It helps highlight unusual/important years that push my hypothesis.
-
-Summary - 
-ANOVA:	Compare % growth between physical formats and streaming
-Correlation:	See if physical growth and streaming growth are linked or not
-Z-Scores:	Spot years where physical growth was unusually high
+I lastly made a scatter/line plot showing how revenue changes by year, colored by category type, with trend lines to show patterns. This visual makes it easy to spot which types of music revenue are rising or falling over time.
 
 
 
-Original data:
-
-https://www.riaa.com/wp-content/uploads/2023/03/2022-Year-End-Music-Industry-Revenue-Report.pdf
-https://www.riaa.com/wp-content/uploads/2024/03/2023-Year-End-Revenue-Statistics.pdf
-https://www.riaa.com/wp-content/uploads/2025/03/RIAA-2024Year-End-Revenue-Report.pdf
-
-My own iteration of the data all together:
-
-```{r}
-RIAA_revenue <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSdHiPGcxYmcvFAPLVQZ7BvEEsjBrkA3hXCwgqjcz9w5Obu0zd-a_sV7GxfsP4sU_ucjIX6nEfOIdYx/pub?output=csv")
-```
-What the dataset contains:
-Revenue by category from 2021 to 2024 (in millions of dollars).
 
 
-Categories include:
-
-Streaming (e.g., Paid Subscription, Ad-Supported)
-
-Physical formats (e.g., CD, LP/EP (vinyl), Music Video, Other Physical)
-
-Totals for streaming and physical
-
-% Change columns show year-over-year growth or decline for each category.
+Main Findings:
+The music industry makes the most money from streaming, especially paid subscriptions like Spotify Premium or Apple Music. While CDs and vinyl records are still around, they don’t bring in much money anymore. The data shows streaming is leading the way—and the stats back it up.
 
 
-Time period covered:
-Four years: 2021, 2022, 2023, and 2024
+
+What the Data Shows:
+1. Paid Streaming Is Driving Growth
+Paid streaming has the strongest link to rising music industry revenue.
+
+Correlation: r = 0.994 — this means paid streaming and total revenue go up together almost perfectly.
+
+When more people pay for music streaming, the industry earns more money.
 
 
-Key columns for analysis:
-LP/EP: vinyl record sales.
+2. Ad-Supported Streaming Also Helps
+Free services with ads are also growing.
 
-CD, Music Video, Other Physical: Useful for total physical media analysis.
-
-Total Physical Value: compare overall physical trends.
-
-Total Streaming Revenues: Use this to contrast physical vs. digital trends.
+Correlation: r = 0.983 — strong positive connection, just not quite as strong as paid subscriptions.
 
 
-What’s missing or needed:
-Consumer behavior data (demographics, preferences) isn’t included—it’s revenue-only.
+3. CDs and Vinyl Aren’t Making a Big Difference
+CD revenue has a negative correlation with total industry revenue: r = -0.347.
 
-No breakdown within LP/EP (e.g., genre, age group).
+This means CD sales are slightly going down as total revenue goes up.
 
-Inflation adjustment if you want to analyze “real” revenue change.
+Vinyl has a weak positive correlation: r = 0.122, but it’s not strong enough to drive industry growth.
+
+
+
+What the ANOVA Test Shows:
+ANOVA helps me see if different types of music revenue (like CDs, streaming, vinyl) have real differences in how they affect total revenue.
+
+The test showed that there is a statistically significant difference between the groups (p < 0.001). This shows that some revenue types (like streaming) matter much more than others (like CDs or vinyl).
+
+This confirms what the correlation results showed—streaming is doing most of the heavy lifting, while physical formats don’t add much.
+
+
+
+Graph:
+The scatter/line graph shows that streaming is rising fast while physical formats stay flat.
+
 
 
 Questions:
-Is vinyl driving the rise in physical media overall?
+Why do some people still buy CDs or vinyl, even when streaming is easier and more popular?
 
-Are CDs declining while vinyl rises?
+How do musicians make money now compared to the days of physical albums?
 
-How does total physical media trend compare to streaming growth?
+Are there age or cultural differences in how people listen to music?
 
-Does the growth of vinyl mirror any dips or flattening in streaming?
+What happens to record stores and collectors as streaming takes over?
+
+
+
+Reporting the Story:
+Double-check the data with sources like IFPI and going deeper into RIAA.
+
+
+
+Interview people:
+
+Music business experts to talk about the shift to streaming.
+
+Local artists to share their experience with streaming platforms.
+
+A record store owner or vinyl collector to explain why some fans still love physical formats.
+
+Young and older music fans for a range of perspectives.
+
+
+
+Visuals:
+
+Graphs that clearly show how streaming impacts revenue compared to CDs and vinyl. Like the graph I had created here.
+
+
+Title Ideas:
+“Streaming’s Takeover: The Numbers Don’t Lie”
+
+“CDs, Vinyl, and the Rise of Paid Subscriptions”
+
+“Spotify Killed the CD Star: A Deep Dive into Music Revenue”
 

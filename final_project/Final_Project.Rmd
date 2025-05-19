@@ -1,0 +1,188 @@
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+```
+
+
+```{r}
+data <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_02vV4-U327jbHQCTXZGpnDUyW46hKPwMJwVVZXcLeefOo2JR6iR5SPs-GuiK9ZfekcUfvwbTp8eJ/pub?output=csv")
+```
+
+```{r}
+data_long <- data %>%
+  pivot_longer(cols = -Year, names_to = "Format", values_to = "Revenue") %>%
+  mutate(
+    Revenue = str_replace_all(Revenue, "[$,]", ""),  # remove dollar signs and commas
+    Revenue = as.numeric(Revenue)  # convert to numeric
+  )
+
+```
+
+
+```{r}
+data_growth <- data_long %>%
+  group_by(Format) %>%
+  arrange(Year) %>%
+  mutate(Percent_Growth = (Revenue - lag(Revenue)) / lag(Revenue) * 100) %>%
+  drop_na()
+```
+
+```{r}
+cor_test <- cor.test(data_growth$Year, data_growth$Percent_Growth)
+print(cor_test)
+
+```
+
+```{r}
+table(data_growth$Format)
+table(data_growth$Type)
+
+```
+```{r}
+data_growth <- data_growth %>%
+  mutate(Type = case_when(
+    str_detect(Format, regex("vinyl|cd|physical", ignore_case = TRUE)) ~ "Physical",
+    TRUE ~ "Digital"
+  ))
+
+```
+```{r}
+table(data_growth$Type)
+
+```
+```{r}
+data_growth <- data_growth %>%
+  mutate(
+    Format = factor(Format),
+    Type = factor(Type)
+  )
+
+```
+```{r}
+model <- lm(Percent_Growth ~ Year * Type, data = data_growth)
+summary(model)
+
+```
+
+```{r}
+data_growth <- data_growth %>%
+  mutate(Type = case_when(
+    str_detect(Format, "Vinyl|CD|Physical") ~ "Physical",
+    TRUE ~ "Digital"
+  ))
+
+```
+
+```{r}
+model <- lm(Percent_Growth ~ Year * Type, data = data_growth)
+summary(model)
+
+```
+```{r}
+table(data_growth$Type)
+
+```
+```{r}
+unique(data_growth$Format)
+
+```
+
+
+
+
+```{r}
+ggplot(data_growth, aes(x = Year, y = Percent_Growth, color = Format)) +
+  geom_line() +
+  labs(title = "Percentage Growth of Music Revenue Formats Over Time")
+```
+
+
+AI Link: https://chatgpt.com/share/6816d502-fcb8-800a-bb94-a32956efe3b9
+
+I've gotten quite a bit of error codes, and even when I asked ChatGPT about it. I still could not get it solved in order to get correlation, ANOVA, and regression of my data. Even after fixing up my dataset.However, I was able to get information for correlation. Unfortunately, all it told me was there is no significant linear relationship between Year and Percent Growth. The correlation is very weak (−0.0416) and the p-value confirms it’s not statistically significant.
+
+I tried for over an hour to get the other two codes to workout, but even with the help of AI I still couldn't get results.
+
+Tests: I wasn't too sure, but I do have some ideas that could possibly work for my data.
+
+ANOVA
+I can use ANOVA to compare the percentage growth rates of different categories (Vinyl, Streaming).
+This tells me if the average growth is statistically different across formats.
+(Are physical formats growing faster than streaming?)
+
+Correlation 
+I can calculate the correlation between Vinyl (and/or total physical) growth rates and streaming growth rates.
+If I find a negative correlation, it would support the idea that as physical grows, streaming slows a little, or at least that they don't grow together.
+(Are physical and streaming moving together or separately?)
+
+Z-Scores
+By standardizing the growth rates (using Z-scores), I can identify years where physical formats had especially strong growth compared to streaming.
+It helps highlight unusual/important years that push my hypothesis.
+
+Summary - 
+ANOVA:	Compare % growth between physical formats and streaming
+Correlation:	See if physical growth and streaming growth are linked or not
+Z-Scores:	Spot years where physical growth was unusually high
+
+
+
+Original data:
+
+https://www.riaa.com/wp-content/uploads/2023/03/2022-Year-End-Music-Industry-Revenue-Report.pdf
+https://www.riaa.com/wp-content/uploads/2024/03/2023-Year-End-Revenue-Statistics.pdf
+https://www.riaa.com/wp-content/uploads/2025/03/RIAA-2024Year-End-Revenue-Report.pdf
+
+My own iteration of the data all together:
+
+```{r}
+RIAA_revenue <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSdHiPGcxYmcvFAPLVQZ7BvEEsjBrkA3hXCwgqjcz9w5Obu0zd-a_sV7GxfsP4sU_ucjIX6nEfOIdYx/pub?output=csv")
+```
+What the dataset contains:
+Revenue by category from 2021 to 2024 (in millions of dollars).
+
+
+Categories include:
+
+Streaming (e.g., Paid Subscription, Ad-Supported)
+
+Physical formats (e.g., CD, LP/EP (vinyl), Music Video, Other Physical)
+
+Totals for streaming and physical
+
+% Change columns show year-over-year growth or decline for each category.
+
+
+Time period covered:
+Four years: 2021, 2022, 2023, and 2024
+
+
+Key columns for analysis:
+LP/EP: vinyl record sales.
+
+CD, Music Video, Other Physical: Useful for total physical media analysis.
+
+Total Physical Value: compare overall physical trends.
+
+Total Streaming Revenues: Use this to contrast physical vs. digital trends.
+
+
+What’s missing or needed:
+Consumer behavior data (demographics, preferences) isn’t included—it’s revenue-only.
+
+No breakdown within LP/EP (e.g., genre, age group).
+
+Inflation adjustment if you want to analyze “real” revenue change.
+
+
+Questions:
+Is vinyl driving the rise in physical media overall?
+
+Are CDs declining while vinyl rises?
+
+How does total physical media trend compare to streaming growth?
+
+Does the growth of vinyl mirror any dips or flattening in streaming?
+
